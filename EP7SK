@@ -1,0 +1,83 @@
+/***********************************************************************************
+	Company Name :- Logsun Systems, Pune
+	Developer :- Rahul Gaud
+	Program :- Interfacing of 7 Segment Display & Keypad
+	Connection details :-
+												SV5 (PORT A)= J11 (7 Seg DATA)
+												SV3 (PORT C)= J12 (7 Seg Transistor)
+												SV2 (PORT D)= J13 (4x4 Keypad)
+				             
+*************************************************************************************/
+
+#include <stm32f407xx.h>
+#include "Keypad.h"
+#include "7_Segment.h"
+/************************************************************************************/
+
+
+int main(void)
+{
+	SCB->CCR |= SCB_CCR_STKALIGN_Msk;				//Enable double word stack alignment
+	
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN;		//Enable Port B, C & D Clock
+	
+  //Set PA0-PA7 as GPIO Output Pins (push-pull)
+	GPIOA->MODER |= (GPIO_MODER_MODE0_0) | (GPIO_MODER_MODE1_0) |(GPIO_MODER_MODE2_0) |(GPIO_MODER_MODE3_0) |
+										(GPIO_MODER_MODE4_0) | (GPIO_MODER_MODE5_0) | (GPIO_MODER_MODE6_0) | (GPIO_MODER_MODE7_0);
+	GPIOA->OTYPER |= 0;			//Port A GPIO type (push-pull)
+	GPIOA->OSPEEDR |= 0;		//Port A GPIO speed (slow)
+	GPIOA->PUPDR |= 0;			//no pull up no pull down
+	
+	//Set PC0-PC3 as GPIO Output Pins (push-pull)
+	GPIOC->MODER |= (GPIO_MODER_MODE0_0) | (GPIO_MODER_MODE1_0) | (GPIO_MODER_MODE2_0) | (GPIO_MODER_MODE3_0);
+	GPIOC->OTYPER |= 0;			//Port C GPIO type (push-pull)
+	GPIOC->OSPEEDR |= 0;		//Port C GPIO speed (slow)
+	GPIOC->PUPDR |= 0;			//no pull up no pull down
+	
+	//Set PD0- PD3 as GPIO Output Pins (push-pull)
+	GPIOD->MODER |= (GPIO_MODER_MODE0_0) | (GPIO_MODER_MODE1_0) | (GPIO_MODER_MODE2_0) | (GPIO_MODER_MODE3_0);
+	//Set PD4- PD7 as GPIO Input Pins (push-pull)
+	GPIOD->MODER &= ~((GPIO_MODER_MODER4) | (GPIO_MODER_MODER5) | (GPIO_MODER_MODER6) | (GPIO_MODER_MODER7));
+	
+	GPIOD->PUPDR |= (GPIO_PUPDR_PUPDR4_0) | (GPIO_PUPDR_PUPDR5_0) |(GPIO_PUPDR_PUPDR6_0) | (GPIO_PUPDR_PUPDR7_0); // pull up
+	
+	GPIOD->OTYPER |= 0;			//Port D GPIO type (push-pull)
+	GPIOD->OSPEEDR |= 0;		//Port D GPIO speed (slow)
+
+	GPIOA->BSRR = A | B | C | D | E | F | G | DP;
+	GPIOC->BSRR = T1 | T2 | T3 | T4;
+	
+while(1)
+		{									
+			R1(0); R2(1); R3(1); R4(1);						
+			if(!(GPIOD->IDR & PIN_C1)){display(0x8E);}	// Display F
+			if(!(GPIOD->IDR & PIN_C2)){display(0x86);}	// Display E
+			if(!(GPIOD->IDR & PIN_C3)){display(0xA1);}  // Display D
+			if(!(GPIOD->IDR & PIN_C4)){display(0xC6);}  // Display C		
+			
+			R1(1);R2(0);R3(1);R4(1);
+			if(!(GPIOD->IDR & PIN_C1)){display(0x83);}  // Display B
+			if(!(GPIOD->IDR & PIN_C2)){display(0x88);}  // Display A
+			if(!(GPIOD->IDR & PIN_C3)){display(0x90);}  // Display 9
+			if(!(GPIOD->IDR & PIN_C4)){display(0x80);}  // Display 8
+			
+			R1(1);R2(1);R3(0);R4(1);
+			if(!(GPIOD->IDR & PIN_C1)){display(0xF8);}  // Display 7
+			if(!(GPIOD->IDR & PIN_C2)){display(0x82);}  // Display 6
+			if(!(GPIOD->IDR & PIN_C3)){display(0x92);}  // Display 5
+			if(!(GPIOD->IDR & PIN_C4)){display(0x99);}  // Display 4
+			
+			R1(1);R2(1);R3(1);R4(0);
+			if(!(GPIOD->IDR & PIN_C1)){display(0xB0);}  // Display 3
+			if(!(GPIOD->IDR & PIN_C2)){display(0xA4);}  // Display 2
+			if(!(GPIOD->IDR & PIN_C3)){display(0xF9);}  // Display 1
+			if(!(GPIOD->IDR & PIN_C4)){display(0xC0);}	// Display 0	
+		}
+}
+/***************************************************************************/
+
+
+void display(unsigned char byte)
+	{
+		GPIOA->ODR = byte;
+	}
