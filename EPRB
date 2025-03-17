@@ -1,0 +1,131 @@
+/***********************************************************************************
+	Company Name :- Logsun Systems, Pune
+	Developer :- Rahul Gaud
+	Connection details :-
+												SV5 (PORT A)= J7 (RELAY BUZZER)
+				             
+*************************************************************************************/
+
+
+#include <stm32f407xx.h>
+
+void Delay(uint32_t nCount);
+void Right(void);
+void Left(void);
+
+#define LOOP_COUNT 0x30000
+
+int main(void)
+{
+	SCB->CCR |= SCB_CCR_STKALIGN_Msk;				//Enable double word stack alignment
+	
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;		//Enable Port A Clock
+	
+	//Set PA0, PA1, PA4, PA5, PA6, PA7 as GPIO Output Pins (push-pull)
+	GPIOA->MODER |= (GPIO_MODER_MODE0_0) | (GPIO_MODER_MODE1_0) |(GPIO_MODER_MODE4_0) | 
+										(GPIO_MODER_MODE5_0) | (GPIO_MODER_MODE6_0) | (GPIO_MODER_MODE7_0);
+	
+	//Set PA2, PA3 as GPIO Input Pins (push-pull)
+	GPIOA->MODER &= ~((GPIO_MODER_MODER2) | (GPIO_MODER_MODER3));
+	
+	GPIOA->OTYPER |= 0;			//Port A GPIO type (push-pull)
+	GPIOA->OSPEEDR |= 0;		//Port A GPIO speed (slow)
+	GPIOA->PUPDR |= (GPIO_PUPDR_PUPDR2_0) | (GPIO_PUPDR_PUPDR3_0);		//pull up
+	
+	GPIOA->BSRR = (1<<2) | (1<<3);
+	GPIOA->BSRR = ((1<<0)<<16 | (1<<1)<<16);
+	
+	while(1)
+	{
+		if((GPIOA->IDR & (1<<3)) == 0)
+		{
+			GPIOA->BSRR = (1<<0);
+			GPIOA->BSRR = (1<<1)<<16;
+			Left();
+		}
+		else if((GPIOA->IDR & (1<<2)) == 0)
+		{
+			GPIOA->BSRR = (1<<1);
+			GPIOA->BSRR = (1<<0)<<16;
+			Right();
+		}
+		else
+		{
+			GPIOA->BSRR = ((1<<0)<<16 | (1<<1)<<16);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 |(1<<6)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);
+			Delay(LOOP_COUNT);
+			Delay(LOOP_COUNT);
+			GPIOA->BSRR = (1<<4) | (1<<5) |(1<<6) | (1<<7);
+			Delay(LOOP_COUNT);
+			Delay(LOOP_COUNT);
+			Delay(LOOP_COUNT);
+		}
+	};
+}
+
+/*-------------------------------------------------------------------------------------------------------------------------
+Funtion Name	:	Right to Left led blinking function
+---------------------------------------------------------------------------------------------------------------------------*/
+void Right(void)
+{
+	GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 |(1<<6)<<16 | (1<<7)<<16);
+	while(GPIOA->IDR & (1<<3))
+		{
+			GPIOA->BSRR = (1<<1);
+			GPIOA->BSRR = (1<<0)<<16;
+			GPIOA->BSRR = (1<<4);
+			GPIOA->BSRR = ((1<<5)<<16 | (1<<6)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);
+		
+			GPIOA->BSRR = (1<<5);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<6)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);
+			
+			GPIOA->BSRR = (1<<6);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);
+		
+			
+			GPIOA->BSRR = (1<<7);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 | (1<<6)<<16);
+			Delay(LOOP_COUNT);
+		};
+	}
+
+/*-------------------------------------------------------------------------------------------------------------------------
+Funtion Name	:	Left to right led blinking function
+---------------------------------------------------------------------------------------------------------------------------*/
+void Left(void)
+{	
+	GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 |(1<<6)<<16 | (1<<7)<<16);
+	while(GPIOA->IDR & (1<<2))
+		{
+			GPIOA->BSRR = (1<<0);
+			GPIOA->BSRR = (1<<1)<<16;
+			GPIOA->BSRR = (1<<7);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 | (1<<6)<<16);
+			Delay(LOOP_COUNT);
+		
+			GPIOA->BSRR = (1<<6);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<5)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);
+	
+			GPIOA->BSRR = (1<<5);
+			GPIOA->BSRR = ((1<<4)<<16 | (1<<6)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);
+			
+			GPIOA->BSRR = (1<<4);
+			GPIOA->BSRR = ((1<<5)<<16 | (1<<6)<<16 | (1<<7)<<16);
+			Delay(LOOP_COUNT);	
+		};
+} 
+
+
+void Delay(uint32_t nCOunt)
+{
+	while(nCOunt--)
+	{
+		__NOP();
+	}
+}
