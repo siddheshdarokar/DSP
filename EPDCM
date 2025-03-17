@@ -1,0 +1,124 @@
+/***********************************************************************************
+	Company Name :- Logsun Systems, Pune
+	Developer :- Rahul Gaud
+	Program :- Interfacing of DC Motor with STM32V407VET6
+	Connection details :-
+												SV2 (PORT D)= J14 (DC MOTOR INPUT)
+												SV1 (PORT E)= J15 (DC MOTOR START STOP)	      
+												
+*************************************************************************************/
+
+#include <stm32f407xx.h>
+
+void Delay(uint32_t nCount);
+
+#define LOOP_COUNT 0x1000
+unsigned int r1,r2,r3,r4;
+
+void run(unsigned char val)
+{
+			r3=r1;
+			r4=r2;
+		if(val==0x00)
+		{
+			GPIOD->BSRR = (1<<4)<<16;
+			GPIOD->BSRR = (1<<5);
+			while(r3!=0)
+				r3--;
+			GPIOD->BSRR = (1<<5)<<16;
+			while(r4!=0)
+				r4--;
+		}
+		if(val==0xff)
+		{
+			GPIOD->BSRR = (1<<4);
+			GPIOD->BSRR = (1<<5)<<16;
+			while(r3!=0)
+				r3--;
+			GPIOD->BSRR = (1<<4)<<16;
+			while(r4!=0)
+				r4--;
+		}	
+}
+
+int main(void)
+{
+	unsigned char val,temp;
+	temp=0x12;
+	r1=800;
+	r2=1000;
+	SCB->CCR |= SCB_CCR_STKALIGN_Msk;				//Enable double word stack alignment
+	
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN | RCC_AHB1ENR_GPIOEEN;		//Enable Port A Clock
+	
+  //Set PD0 & PD1 as GPIO Output Pins (push-pull)
+	GPIOD->MODER |= (GPIO_MODER_MODE0_0) | (GPIO_MODER_MODE1_0) | (GPIO_MODER_MODE4_0) | (GPIO_MODER_MODE5_0) | (GPIO_MODER_MODE6_0) | (GPIO_MODER_MODE7_0);
+	
+	//Set PE0- PE4 as GPIO Input Pins (push-pull)
+	GPIOE->MODER &= ~((GPIO_MODER_MODER0) | (GPIO_MODER_MODER1) | (GPIO_MODER_MODER2) | (GPIO_MODER_MODER3) | (GPIO_MODER_MODER4));
+	
+	GPIOD->OTYPER |= 0;			//Port A GPIO type (push-pull)
+	GPIOD->OSPEEDR |= 0;		//Port A GPIO speed (slow)
+	GPIOD->PUPDR |= 0;			//no pull up no pull down
+	
+	GPIOE->PUPDR |= (GPIO_PUPDR_PUPDR0_0) | (GPIO_PUPDR_PUPDR1_0) | (GPIO_PUPDR_PUPDR2_0) | 
+									(GPIO_PUPDR_PUPDR3_0) |(GPIO_PUPDR_PUPDR4_0);
+	
+	GPIOE->OTYPER |= 0;			//Port A GPIO type (push-pull)
+	GPIOE->OSPEEDR |= 0;		//Port A GPIO speed (slow)
+	
+	
+	GPIOE->BSRR = (1<<0) | (1<<1) | (1<<2) | (1<<3) | (1<<4);
+	GPIOD->BSRR = ((1<<0)<<16 | (1<<1)<<16 | (1<<4)<<16 | (1<<5)<<16 | (1<<6)<<16 | (1<<7)<<16);
+	
+	
+while(1)
+	{
+		if(!(GPIOE->IDR & (1<<0)))		//start
+		{
+			GPIOD->BSRR = (1<<0);
+			val=1;
+			temp=0x00;
+		}
+		if(!(GPIOE->IDR & (1<<2)) && val==1)		//increament
+		{
+			if(r1 < 6000 && r2 >0)
+				{
+					r1++;
+					r2--;
+					Delay(LOOP_COUNT);
+				}				
+		}
+		if(!(GPIOE->IDR & (1<<3)) && val==1)		// decreament
+		{
+			if(r1>600 && r2 <5000)
+				{
+					r1--;
+					r2++;
+					Delay(LOOP_COUNT);
+				}				
+		}
+		if(!(GPIOE->IDR & (1<<1)) && val==1)			//reverse
+		{
+			temp=0xff;
+		}
+		if(!(GPIOE->IDR & (1<<4)) && val==1)			//stop
+		{
+			GPIOD->BSRR = ((1<<0)<<16 | (1<<4)<<16 | (1<<5)<<16);
+			temp=0xcc;
+			val=0;
+			r1=800;
+			r2=1000;
+		}
+		run(temp);
+	};
+}
+
+
+void Delay(uint32_t nCOunt)
+{
+	while(nCOunt--)
+	{
+		__NOP();
+	}
+}
